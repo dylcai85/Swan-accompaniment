@@ -15,7 +15,8 @@
     "test:e2e": "playwright test",
     "score:inspect": "tsx tools/score-inspect.ts",
     "eval": "tsx tools/eval.ts",
-    "check:no-score": "tsx tools/check-no-score.ts"
+    "check:no-score": "tsx tools/check-no-score.ts",
+    "fixtures:mini": "tsx tools/make-mini-score.ts"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",
@@ -24,5 +25,8 @@
     "typescript": "5.9.3",
     "vite": "8.3.2",
     "vitest": "5.0.3"
+  },
+  "dependencies": {
+    "@tonejs/midi": "2.0.28"
   }
 }
