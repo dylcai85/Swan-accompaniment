@@ -3,7 +3,7 @@ import { Player, type VoiceStatus } from '../playback/player';
 import type { Score } from '../score/types';
 
 const VOICE_TEXT: Record<VoiceStatus, string> = {
-  loading: 'Loading piano sound… (simple synth until it is ready)',
+  loading: 'Loading piano sound…',
   sampler: 'Piano ready',
   'synth-fallback': 'Using simple synth: piano samples failed to load',
 };
@@ -79,13 +79,29 @@ export function mountTransport(root: HTMLElement): (score: Score | null) => void
     return creating;
   };
 
+  let starting = false;
   playBtn.addEventListener('click', () => {
-    void ensurePlayer().then((p) => {
-      if (!p) return;
-      if (p.state === 'playing') p.pause();
-      else p.play();
-      render();
-    });
+    if (starting) return;
+    starting = true;
+    void ensurePlayer()
+      .then(async (p) => {
+        if (!p) return;
+        if (p.state === 'playing') {
+          p.pause();
+          return;
+        }
+        // First Play: wait for the piano samples (or the synth fallback) instead of
+        // starting on the synth and switching sound mid-phrase.
+        if (p.voiceStatus === 'loading') {
+          render();
+          await p.ready;
+        }
+        if (p === player) p.play();
+      })
+      .finally(() => {
+        starting = false;
+        render();
+      });
   });
 
   goBtn.addEventListener('click', () => {

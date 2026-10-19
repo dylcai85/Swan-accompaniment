@@ -2,7 +2,7 @@ import { midiToName } from '../score/position';
 import type { PianoVoice } from './scheduler';
 
 const SALAMANDER_URL = 'https://tonejs.github.io/audio/salamander/';
-const SAMPLE_LOAD_TIMEOUT_MS = 30_000;
+const SAMPLE_LOAD_TIMEOUT_MS = 15_000;
 
 /** Salamander samples, one every minor third (Tone.js's standard set); the Sampler repitches between them. */
 function salamanderUrls(): Record<string, string> {

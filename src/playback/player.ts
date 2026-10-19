@@ -22,6 +22,8 @@ export class Player {
   private pausedTick = 0;
   state: PlayerState = 'paused';
   voiceStatus: VoiceStatus = 'loading';
+  /** Settles once the piano sound is decided: samples loaded, or the synth fallback. */
+  readonly ready: Promise<void>;
   onChange: () => void = () => {};
 
   constructor(
@@ -33,7 +35,7 @@ export class Player {
     const events = pianoEvents(score);
     this.lastTick = Math.max(0, ...events.map((e) => e.tick + e.durTicks));
     this.sched = new Scheduler(events, new ScoreClock(nominalTicksPerSec(score)), new OscVoice(ctx, this.master));
-    void createSamplerVoice(ctx, this.master).then(
+    this.ready = createSamplerVoice(ctx, this.master).then(
       (voice) => {
         this.sched.voice.stopAll(ctx.currentTime);
         this.sched.voice = voice;
