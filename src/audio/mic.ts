@@ -7,6 +7,8 @@ export const CHUNK_SIZE = 1024;
 export interface MicInput {
   deviceId: string;
   label: string;
+  /** The mic's own settings as reported by the browser (sample rate etc.), for diagnostics. */
+  settings: () => string;
   /** Called if the device goes away (unplugged, or the OS switched it off). */
   onEnded: () => void;
   /** Stop capture and release the microphone. */
@@ -63,6 +65,11 @@ export async function startMic(
   const input: MicInput = {
     deviceId: track?.getSettings().deviceId ?? '',
     label: track?.label ?? 'microphone',
+    settings: () => {
+      const s = track?.getSettings();
+      if (!s) return 'no track';
+      return `${track!.readyState}${track!.muted ? ', muted' : ''}${s.sampleRate ? `, ${s.sampleRate} Hz` : ''}`;
+    },
     onEnded: () => {},
     stop() {
       node.port.onmessage = null;

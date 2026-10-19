@@ -37,6 +37,7 @@ export function mountMicPanel(root: HTMLElement): void {
       <p class="note" data-testid="mic-note">—</p>
       <p class="detail" data-testid="mic-detail">Mic off.</p>
       <p class="detail" data-testid="mic-latency"></p>
+      <p class="detail" data-testid="mic-diagnostics"></p>
     </section>
   `;
   const q = <T extends HTMLElement>(id: string) => root.querySelector<T>(`[data-testid="${id}"]`)!;
@@ -47,6 +48,9 @@ export function mountMicPanel(root: HTMLElement): void {
   const noteEl = q<HTMLParagraphElement>('mic-note');
   const detail = q<HTMLParagraphElement>('mic-detail');
   const latency = q<HTMLParagraphElement>('mic-latency');
+  const diag = q<HTMLParagraphElement>('mic-diagnostics');
+  let diagTimer: ReturnType<typeof setInterval> | null = null;
+  let lastLevelDb = -Infinity;
 
   let mic: MicInput | null = null;
   let watchdog: ReturnType<typeof setTimeout> | null = null;
@@ -87,6 +91,7 @@ export function mountMicPanel(root: HTMLElement): void {
           peak = Math.max(peak, Math.abs(chunk[i]!));
         }
         const levelDb = 20 * Math.log10(Math.sqrt(sum / chunk.length) + 1e-9);
+        lastLevelDb = levelDb;
         meter.style.width = `${Math.max(0, Math.min(100, ((levelDb + 60) / 60) * 100))}%`;
         silentFrames = levelDb < SILENT_DB ? silentFrames + 1 : 0;
         levelHint.textContent =
@@ -130,6 +135,15 @@ export function mountMicPanel(root: HTMLElement): void {
       detail.textContent = 'The microphone was disconnected or switched. Pick one in the Microphone list and click Start mic.';
     };
     startBtn.textContent = 'Stop mic';
+    // Diagnostics: what the page actually sees, so problems with a specific setup can be reported.
+    const showDiag = () => {
+      if (!mic) return;
+      diag.textContent =
+        `Diagnostics: page audio ${ctx.state} at ${ctx.sampleRate} Hz · mic "${mic.label}" ${mic.settings()} · ` +
+        `chunks received ${frames} · level ${Number.isFinite(lastLevelDb) ? Math.round(lastLevelDb) : '—'} dB`;
+    };
+    showDiag();
+    diagTimer = setInterval(showDiag, 500);
     // If no audio arrives, say so instead of sitting silent.
     watchdog = setTimeout(() => {
       if (mic && frames === 0) {
@@ -142,6 +156,8 @@ export function mountMicPanel(root: HTMLElement): void {
   };
 
   const stop = () => {
+    if (diagTimer !== null) clearInterval(diagTimer);
+    diagTimer = null;
     if (watchdog !== null) clearTimeout(watchdog);
     watchdog = null;
     mic?.stop();
@@ -167,8 +183,12 @@ export function mountMicPanel(root: HTMLElement): void {
   });
 
   // A plugged/unplugged headset changes the device list (and often the system default input).
+  // Restart a running mic on any change: Chrome can stop delivering mic audio to the page
+  // when the output switches (e.g. headphones plugged in on a Mac).
   navigator.mediaDevices?.addEventListener('devicechange', () => {
-    if (mic) void fillDevices(deviceSelect.value);
+    if (!mic) return;
+    stop();
+    start().catch(fail);
   });
 
   deviceSelect.addEventListener('change', () => {
