@@ -1,0 +1,32 @@
+# Dependencies and build output
+node_modules/
+dist/
+
+# Third-party score files: LOCAL ONLY, never commit (see CLAUDE.md hard rule 7)
+*.mid
+*.midi
+*.mxl
+*.musicxml
+local/
+docs/reference/
+
+# Generated fixtures derived from the real score
+fixtures/synthetic/
+fixtures/derived/
+
+# The one committed MIDI: an original, made-up mini score for tests/CI
+!tests/fixtures/mini-score.mid
+
+# Test output
+test-results/
+playwright-report/
+coverage/
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~
+.idea/
+.vscode/
