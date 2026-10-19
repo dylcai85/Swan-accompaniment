@@ -4,7 +4,7 @@ One entry per milestone, newest first. Each entry: what changed, how it was veri
 
 ## M0: Scaffold and deploy (2026-10-19)
 
-**Needs Dylan:** enable GitHub Pages (Settings → Pages → Source: **GitHub Actions**). Until then the `deploy` job fails; the `check` job is unaffected. After enabling, re-run the latest "CI and deploy" run (Actions tab → Re-run all jobs) or push anything.
+**Needs Dylan:** enable GitHub Pages. Step-by-step instructions are in `docs/INPUTS.md`. Until then the Pages steps fail; the tests are unaffected.
 
 **Changed**
 - Vite 8 + strict TS, Vitest, Playwright, tsx, Node 22 (`.nvmrc`). Vite `base` = `/Swan-accompaniment/`.

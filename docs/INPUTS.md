@@ -4,7 +4,12 @@ Things only Dylan can provide or do. Tick an item (`[x]`) when it's done; Claude
 
 ## Accounts and settings
 
-- [ ] **Enable GitHub Pages**: repo Settings → Pages → Build and deployment → Source: **GitHub Actions**. Free for this public repo. *Needed by M0.*
+- [ ] **Enable GitHub Pages** (free for this public repo). *Needed by M0.*
+  1. Open https://github.com/dylcai85/Swan-accompaniment/settings/pages (sign in if asked). Use a computer browser: the GitHub phone app has no Settings.
+  2. Find the heading **Build and deployment**.
+  3. Under **Source**, click the dropdown (it may say "Deploy from a branch") and choose **GitHub Actions**. It saves by itself.
+  4. Open https://github.com/dylcai85/Swan-accompaniment/actions, click the latest **CI and deploy** run, then click **Re-run all jobs** (top right).
+  5. Wait until both jobs show a green check (a few minutes). The site is then at https://dylcai85.github.io/Swan-accompaniment/
 - [x] **Give Claude push access to this repo**: install the Claude GitHub App on `dylcai85/swan-accompaniment` (https://github.com/apps/claude/installations/select_target), or reconnect GitHub at claude.ai → Settings → Connectors. Without it Claude can commit locally but cannot push. *Needed by M0.*
 
 ## Files (local only unless stated)
