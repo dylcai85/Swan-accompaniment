@@ -86,14 +86,24 @@ footer {
   background: #3a8a3a;
 }
 .mic-panel .hint {
+  flex-basis: 100%;
+  min-height: 1.4em; /* reserve the line so hints appearing don't move anything */
+  line-height: 1.4;
   color: #b35c00;
   font-size: 0.9rem;
 }
 .mic-panel .note {
+  min-height: 1.3em;
   font-size: 2rem;
   font-weight: 600;
+  line-height: 1.3;
+}
+.mic-panel .note.stale {
+  color: #bbb;
 }
 .mic-panel .detail {
+  min-height: 1.4em;
+  line-height: 1.4;
   color: #555;
   font-size: 0.9rem;
 }

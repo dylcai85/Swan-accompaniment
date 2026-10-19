@@ -11,7 +11,40 @@ const SILENT_DB = -85;
 /** Exact digital zeros (not just a quiet room): the browser is handing us a dead stream. */
 const ZERO_DB = -150;
 /** Chunks of pure zeros (~1.5 s) before trying the next way of opening the mic. */
-const ZERO_CHUNKS_BEFORE_FALLBACK = 70;
+const ZERO_CHUNKS_BEFORE_FALLBACK = 24; // ~0.5 s
+const STORED_MODES = 'swan.micModes';
+
+/**
+ * Remembered working mic mode per setup, keyed by the current default output device: the
+ * silent-mic problem depends on where sound goes (e.g. wired headphones vs. speakers on a Mac).
+ */
+async function setupKey(): Promise<string> {
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const out =
+      devices.find((d) => d.kind === 'audiooutput' && d.deviceId === 'default') ??
+      devices.find((d) => d.kind === 'audiooutput');
+    return out?.label ?? '';
+  } catch {
+    return '';
+  }
+}
+
+function rememberedModes(): Record<string, string> {
+  try {
+    return JSON.parse(localStorage.getItem(STORED_MODES) ?? '{}') as Record<string, string>;
+  } catch {
+    return {};
+  }
+}
+
+function rememberMode(key: string, modeId: string): void {
+  try {
+    localStorage.setItem(STORED_MODES, JSON.stringify({ ...rememberedModes(), [key]: modeId }));
+  } catch {
+    // Not remembered; the fallback will find it again next time.
+  }
+}
 
 function storedMic(): string {
   try {
@@ -72,8 +105,17 @@ export function mountMicPanel(root: HTMLElement): void {
     if (mics.some((m) => m.deviceId === selected)) deviceSelect.value = selected;
   };
 
-  const start = async (modeIndex = 0) => {
+  /** Start the mic. Without `modeIndex`, use the mode remembered for this setup (else the most accurate). */
+  const start = async (modeIndex?: number) => {
     const ctx = await getAudioContext();
+    const key = await setupKey();
+    const firstAttempt = modeIndex === undefined;
+    if (modeIndex === undefined) {
+      const remembered = rememberedModes()[key];
+      modeIndex = Math.max(0, MIC_MODES.findIndex((m) => m.id === remembered));
+    }
+    const thisMode = modeIndex;
+    let remembered = false;
     const tracker = new PitchTracker(ctx.sampleRate);
     const smoother = new PitchSmoother();
     latency.textContent =
@@ -84,8 +126,8 @@ export function mountMicPanel(root: HTMLElement): void {
     frames = 0;
     silentFrames = 0;
     zeroFrames = 0;
-    const mode = MIC_MODES[modeIndex]!;
-    detail.textContent = 'Starting microphone…';
+    const mode = MIC_MODES[thisMode]!;
+    if (firstAttempt) detail.textContent = 'Starting microphone…';
     mic = await startMic(
       ctx,
       tracker.frameSize,
@@ -102,12 +144,16 @@ export function mountMicPanel(root: HTMLElement): void {
         meter.style.width = `${Math.max(0, Math.min(100, ((levelDb + 60) / 60) * 100))}%`;
         silentFrames = levelDb < SILENT_DB ? silentFrames + 1 : 0;
         zeroFrames = levelDb < ZERO_DB ? zeroFrames + 1 : -Infinity; // any real sound: this mode works
-        if (zeroFrames === ZERO_CHUNKS_BEFORE_FALLBACK && modeIndex + 1 < MIC_MODES.length) {
-          const next = MIC_MODES[modeIndex + 1]!;
+        if (!remembered && zeroFrames === -Infinity) {
+          remembered = true;
+          rememberMode(key, mode.id);
+        }
+        if (zeroFrames === ZERO_CHUNKS_BEFORE_FALLBACK && thisMode + 1 < MIC_MODES.length) {
+          // Switch quietly: keep the UI as it is and reopen the mic in the next mode.
           setTimeout(() => {
-            stop();
-            detail.textContent = `The mic sent pure silence (${mode.label}); trying ${next.label}…`;
-            start(modeIndex + 1).catch(fail);
+            stopCapture();
+            detail.textContent = 'Finding a microphone setting that works with this setup…';
+            start(thisMode + 1).catch(fail);
           });
           return;
         }
@@ -139,10 +185,12 @@ export function mountMicPanel(root: HTMLElement): void {
         if (note) {
           const c = Math.round(note.cents);
           noteEl.textContent = `${note.name} ${c >= 0 ? '+' : '−'}${Math.abs(c)}¢`;
+          noteEl.classList.remove('stale');
           detail.textContent = `${freq.toFixed(1)} Hz · confidence ${r.confidence.toFixed(2)}`;
         } else {
-          noteEl.textContent = '—';
-          detail.textContent = `Mic on: ${mic?.label ?? ''} · level ${Math.round(levelDb)} dB · no clear pitch yet: sing or play one steady note`;
+          // Keep the last note (greyed) through rests so the layout doesn't jump.
+          noteEl.classList.add('stale');
+          detail.textContent = `No pitch · level ${Math.round(levelDb)} dB`;
         }
       },
       deviceSelect.value || storedMic() || undefined,
@@ -174,14 +222,20 @@ export function mountMicPanel(root: HTMLElement): void {
     await fillDevices(mic.deviceId);
   };
 
-  const stop = () => {
+  /** Release the mic and timers, leaving the display as it is. */
+  const stopCapture = () => {
     if (diagTimer !== null) clearInterval(diagTimer);
     diagTimer = null;
     if (watchdog !== null) clearTimeout(watchdog);
     watchdog = null;
     mic?.stop();
     mic = null;
+  };
+
+  const stop = () => {
+    stopCapture();
     startBtn.textContent = 'Start mic';
+    noteEl.classList.remove('stale');
     noteEl.textContent = '—';
     detail.textContent = 'Mic off.';
     meter.style.width = '0%';

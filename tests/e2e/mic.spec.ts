@@ -83,6 +83,31 @@ test('falls back to another mic mode when the raw stream is pure silence (MacBoo
   });
   await page.goto('./');
   await page.getByTestId('mic-start').click();
+  // The switch is quiet: once on, the button stays on "Stop mic" throughout.
+  await expect(page.getByTestId('mic-start')).toHaveText('Stop mic');
+  const t0 = Date.now();
+  while (Date.now() - t0 < 2000) {
+    expect(await page.getByTestId('mic-start').textContent()).toBe('Stop mic');
+    await page.waitForTimeout(100);
+  }
   await expect(page.getByTestId('mic-diagnostics')).toContainText('mode echo-cancel', { timeout: 10_000 });
   await expect.poll(async () => (await page.evaluate(() => window.__debug.pitch))?.name, { timeout: 10_000 }).toMatch(/^(A3|D4)$/);
+
+  // The working mode is remembered for this setup: after a reload it starts there directly.
+  await page.reload();
+  await page.getByTestId('mic-start').click();
+  await expect(page.getByTestId('mic-diagnostics')).toContainText('mode echo-cancel', { timeout: 1500 });
+});
+
+test('the last note stays in place (greyed) during rests', async ({ page }) => {
+  await page.goto('./');
+  await page.getByTestId('mic-start').click();
+  const note = page.getByTestId('mic-note');
+  await expect(note).toHaveText(/^(A3|D4) /, { timeout: 10_000 });
+  // Wait for a silent gap in the fake mic file, then check the note is kept but greyed.
+  await expect(note).toHaveClass(/stale/, { timeout: 10_000 });
+  await expect(note).toHaveText(/^(A3|D4) /);
+  const box = await note.boundingBox();
+  await expect(note).not.toHaveClass(/stale/, { timeout: 10_000 });
+  expect(await note.boundingBox()).toEqual(box);
 });
