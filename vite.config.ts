@@ -20,6 +20,10 @@ export default defineConfig({
     __BUILD_ID__: JSON.stringify(buildId()),
     __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
   },
+  build: {
+    // Emit the AudioWorklet as its own file (never a data: URL) so it loads under the Pages base path.
+    assetsInlineLimit: (file) => (file.endsWith('.worklet.js') ? false : undefined),
+  },
   test: {
     include: ['tests/unit/**/*.test.ts'],
   },

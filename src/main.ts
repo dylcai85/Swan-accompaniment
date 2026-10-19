@@ -4,6 +4,7 @@ import { formatBuildStamp } from './buildInfo';
 import { debug } from './debug';
 import type { RenderOptions } from './playback/render';
 import type { Score } from './score/types';
+import { mountMicPanel } from './ui/micPanel';
 import { mountScorePanel } from './ui/scorePanel';
 import { mountTransport } from './ui/transport';
 
@@ -23,6 +24,7 @@ function render(root: HTMLElement): void {
       </p>
       <div id="score-panel"></div>
       <div id="transport"></div>
+      <div id="mic-panel"></div>
       <button type="button" id="start" data-testid="start">Start</button>
       <p id="status" data-testid="status" role="status">Not started.</p>
     </main>
@@ -32,6 +34,7 @@ function render(root: HTMLElement): void {
     </footer>
   `;
 
+  mountMicPanel(root.querySelector<HTMLElement>('#mic-panel')!);
   let current: Score | null = null;
   const setTransportScore = mountTransport(root.querySelector<HTMLElement>('#transport')!);
   mountScorePanel(root.querySelector<HTMLElement>('#score-panel')!, (score) => {

@@ -61,3 +61,39 @@ footer {
   display: inline-block;
   min-width: 7rem;
 }
+.mic-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid #ddd;
+  background: #fff;
+}
+.mic-panel p {
+  flex-basis: 100%;
+  margin: 0;
+}
+.mic-panel .meter {
+  width: 10rem;
+  height: 0.6rem;
+  background: #eee;
+}
+.mic-panel .meter-fill {
+  width: 0%;
+  height: 100%;
+  background: #3a8a3a;
+}
+.mic-panel .hint {
+  color: #b35c00;
+  font-size: 0.9rem;
+}
+.mic-panel .note {
+  font-size: 2rem;
+  font-weight: 600;
+}
+.mic-panel .detail {
+  color: #555;
+  font-size: 0.9rem;
+}
