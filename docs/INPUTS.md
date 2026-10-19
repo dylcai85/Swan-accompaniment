@@ -4,7 +4,7 @@ Things only Dylan can provide or do. Tick an item (`[x]`) when it's done; Claude
 
 ## Accounts and settings
 
-- [ ] **Enable GitHub Pages** (free for this public repo). *Needed by M0.*
+- [x] **Enable GitHub Pages** (free for this public repo). *Needed by M0.*
   1. Open https://github.com/dylcai85/Swan-accompaniment/settings/pages (sign in if asked). Use a computer browser: the GitHub phone app has no Settings.
   2. Find the heading **Build and deployment**.
   3. Under **Source**, click the dropdown (it may say "Deploy from a branch") and choose **GitHub Actions**. It saves by itself.
@@ -15,7 +15,7 @@ Things only Dylan can provide or do. Tick an item (`[x]`) when it's done; Claude
 ## Files (local only unless stated)
 
 - [x] **Swan MIDI** → `local/swan.mid` (gitignored). Provided in the setup session. **Re-attach it in every new cloud session that needs the real score.** *Needed by M1 (score:inspect, real-score tests), M4–M6 (synthetic fixtures, eval).*
-- [ ] **Check the cello notes against your printed score.** No upload needed: Claude pastes a few bars of the cello part in chat and you compare them with your sheet music (paper or PDF). *Needed by M1.*
+- [x] **Check the cello notes against your printed score.** No upload needed: Claude pastes a few bars of the cello part in chat and you compare them with your sheet music (paper or PDF). *Needed by M1.*
 - [ ] **Decision: may your cello takes be committed?** This repo is public, so committed takes are public recordings. Yes → `fixtures/real/`; no → `local/takes/` (gitignored), re-attached when needed. *Needed by M4.*
 - [ ] **Real cello takes**: cello only, no piano, same mic/position/room as live use, from the top of the Swan, FLAC preferred (<~5 MB each). Location: `fixtures/real/` or `local/takes/`, per the decision above. Conditions and naming: `fixtures/real/README.md`. *Needed by M4 (harness), M5 (follower gates).*
   - [ ] `01-steady-65bpm.flac`: steady, comfortable tempo (~65 bpm quarter)

@@ -72,7 +72,7 @@ The cloud sandbox has no mic or speakers. Do not claim real-time audio "works" b
 ## Working agreement
 
 - Start each milestone in **plan mode**: propose the approach, list files to touch, state how it will be verified. Wait for approval.
-- **Commit directly to `main`.** No PRs. Use a branch only for genuinely conflicting parallel work streams, and merge it back into `main` promptly. Small commits, descriptive messages; all commands green before each push (CI re-runs them on `main`).
+- **Commit directly to `main`.** No PRs. Use a branch only for genuinely conflicting parallel work streams, and merge it back into `main` promptly. Small commits, descriptive messages; run all commands locally and keep them green before each push. CI is deliberately minimal (score-file guard, build, deploy); don't add test steps to it without asking.
 - **Each milestone ends with an entry in `docs/MILESTONES.md`:** what changed, how it was verified, the "Dylan test" checklist, and anything left unverified (e.g. without a microphone). Also summarize it in chat.
 - If something requires a decision or action from Dylan (accounts, settings, recordings, listening tests), say so explicitly at the top of the milestone entry and in chat instead of working around it.
 - **Instructions for Dylan** (settings, accounts, anything he must click): always numbered, short, simple steps that assume no prior knowledge of GitHub or where anything is. Give a direct link to the exact page when one exists (e.g. `https://github.com/dylcai85/Swan-accompaniment/settings/pages`), then say exactly what to click, by its on-screen name. One action per step.

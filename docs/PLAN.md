@@ -25,7 +25,7 @@ Everything else is done by Claude Code.
 Work is committed directly to `main`; each milestone ends with an entry in `docs/MILESTONES.md`. Each milestone lists what ships, how it is verified without a mic, and what Dylan tests live.
 
 ### M0: Scaffold and deploy
-- Vite + TS + Vitest + Playwright; `CLAUDE.md` commands all work; CI workflow (typecheck, test, build, e2e) on pushes; Pages deploy workflow on `main`; correct Vite `base`.
+- Vite + TS + Vitest + Playwright; `CLAUDE.md` commands all work; minimal CI (score-file guard + build) and Pages deploy workflow on `main`; correct Vite `base`.
 - Page with a Start button, a "headphones required" notice, and a build/version stamp.
 - **Verify:** CI green; deployed URL loads; the production build serves under the Pages base path.
 - **Dylan test:** open the deployed URL and confirm it loads.

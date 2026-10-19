@@ -7,4 +7,4 @@ The score itself is not in this repo: see [`docs/LOCAL_FILES.md`](docs/LOCAL_FIL
 ## Develop
 
 Node 22 (`.nvmrc`). `npm ci`, then: `npm run dev` · `npm run build` · `npm run typecheck` · `npm test` · `npm run test:e2e` · `npm run score:inspect` · `npm run eval` · `npm run check:no-score` (run before every commit: fails if a score file is tracked or in `dist/`).
-Deployed by GitHub Actions to https://dylcai85.github.io/Swan-accompaniment/ on every push to `main`.
+Run all of these locally before pushing. GitHub Actions only checks for score files, builds, and deploys to https://dylcai85.github.io/Swan-accompaniment/ on every push to `main` (docs-only changes skip it).

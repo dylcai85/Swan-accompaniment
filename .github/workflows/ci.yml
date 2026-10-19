@@ -1,20 +1,22 @@
-name: CI and deploy
+name: Build and deploy
 
-# Work is committed directly to main (see CLAUDE.md). Every push runs the full
-# check suite; pushes to main then deploy to GitHub Pages.
+# Kept minimal on purpose: the full suite (typecheck, unit, e2e, eval) runs locally
+# before every push (CLAUDE.md). CI only guards against score files, builds, and deploys.
 on:
   push:
+    branches: [main]
+    paths-ignore: ['**.md', 'docs/**', 'fixtures/real/**']
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: pages
   cancel-in-progress: true
 
 jobs:
-  check:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,32 +26,19 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check:no-score
-      - run: npm run typecheck
-      - run: npm test
       - run: npm run build
-      - name: No score files in build output
-        run: npm run check:no-score
-      - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
-      - run: npm run score:inspect
-      - run: npm run eval
-      - if: github.ref == 'refs/heads/main'
-        uses: actions/configure-pages@v5
-      - if: github.ref == 'refs/heads/main'
-        uses: actions/upload-pages-artifact@v3
+      - run: npm run check:no-score
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
 
   deploy:
-    if: github.ref == 'refs/heads/main'
-    needs: check
+    needs: build
     runs-on: ubuntu-latest
     permissions:
       pages: write
       id-token: write
-    concurrency:
-      group: pages
-      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

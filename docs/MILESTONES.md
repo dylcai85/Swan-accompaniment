@@ -2,9 +2,13 @@
 
 One entry per milestone, newest first. Each entry: what changed, how it was verified, the Dylan test, and what is still unverified. Work is committed directly to `main`.
 
+## CI trimmed (2026-10-19)
+
+At Dylan's request CI is now minimal: on pushes to `main` (docs-only changes skipped) it runs `npm ci`, `check:no-score`, `build`, `check:no-score` on dist, then deploys to Pages. Typecheck, unit tests, e2e, `score:inspect` and `eval` run locally before every push instead.
+
 ## M1: Score model (2026-10-19)
 
-**Needs Dylan:** compare the cello notes Claude pasted in chat with your sheet music, and do the website test below.
+**Dylan test passed** (2026-10-19).
 
 **Changed**
 - `src/score/`: `parseScore()` turns a MIDI file into a `Score` in ticks. It reads the meter from the file, uses the median tempo as the nominal tempo (the tempo map is otherwise ignored), finds tracks by name with a fallback to track order, and clips cello legato overlaps so the line is monophonic. Also `tickToBarBeat`, `midiToName`, and a small IndexedDB cache.
@@ -23,16 +27,16 @@ One entry per milestone, newest first. Each entry: what changed, how it was veri
 **Unverified:** that the MIDI's pitches match the printed score (your check); IndexedDB in browsers other than Chromium.
 
 **Dylan test**
-- [ ] Compare the cello bars pasted in chat with your sheet music. Report any wrong note or octave.
-- [ ] Open https://dylcai85.github.io/Swan-accompaniment/ in Chrome on a computer.
-- [ ] Click **Choose file** next to "Load score" and pick your `swan.mid`.
-- [ ] The line under it should say: Score loaded: swan.mid · 28 bars · 6/4 · cello 113 · piano 1 919 · piano 2 258 · nominal 67 bpm.
-- [ ] Reload the page (F5). It should still say "Score loaded".
-- [ ] Click **Forget score**. It should say "No score loaded".
+- [x] Compare the cello bars pasted in chat with your sheet music. Report any wrong note or octave.
+- [x] Open https://dylcai85.github.io/Swan-accompaniment/ in Chrome on a computer.
+- [x] Click **Choose file** next to "Load score" and pick your `swan.mid`.
+- [x] The line under it should say: Score loaded: swan.mid · 28 bars · 6/4 · cello 113 · piano 1 919 · piano 2 258 · nominal 67 bpm.
+- [x] Reload the page (F5). It should still say "Score loaded".
+- [x] Click **Forget score**. It should say "No score loaded".
 
 ## M0: Scaffold and deploy (2026-10-19)
 
-**Needs Dylan:** enable GitHub Pages. Step-by-step instructions are in `docs/INPUTS.md`. Until then the Pages steps fail; the tests are unaffected.
+**Dylan test passed** (2026-10-19). Pages enabled.
 
 **Changed**
 - Vite 8 + strict TS, Vitest, Playwright, tsx, Node 22 (`.nvmrc`). Vite `base` = `/Swan-accompaniment/`.
@@ -60,9 +64,9 @@ One entry per milestone, newest first. Each entry: what changed, how it was veri
 **Unverified (no mic/speakers here):** real-device latency values; that the deployed site loads (Pages not enabled yet); browsers other than Chromium.
 
 **Dylan test** (desktop Chrome, after Pages is enabled and the deploy job is green)
-- [ ] https://dylcai85.github.io/Swan-accompaniment/ loads and shows the headphones notice.
-- [ ] The footer build stamp matches the latest `main` commit's short SHA.
-- [ ] Click **Start**; report the sample rate and base/output latency, once with wired headphones plugged in and once without.
+- [x] https://dylcai85.github.io/Swan-accompaniment/ loads and shows the headphones notice.
+- [x] The footer build stamp matches the latest `main` commit's short SHA.
+- [x] Click **Start**; report the sample rate and base/output latency, once with wired headphones plugged in and once without.
 
 ## Setup (2026-10-19)
 
