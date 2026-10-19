@@ -6,7 +6,8 @@ export interface PianoEvent {
   durTicks: number;
   midi: number;
   velocity: number;
-  part: 1 | 2;
+  /** Index into `score.accompaniment`. */
+  part: number;
 }
 
 export interface PianoVoice {
@@ -18,10 +19,11 @@ export interface PianoVoice {
 
 export const LOOKAHEAD_SEC = 0.12;
 
-/** Piano 1 and piano 2 notes merged into one list sorted by tick. */
+/** All accompaniment tracks merged into one list sorted by tick. */
 export function pianoEvents(score: Score): PianoEvent[] {
-  const tag = (part: 1 | 2) => (n: Score['piano1'][number]): PianoEvent => ({ ...n, part });
-  return [...score.piano1.map(tag(1)), ...score.piano2.map(tag(2))].sort((a, b) => a.tick - b.tick || a.part - b.part);
+  return score.accompaniment
+    .flatMap((p, part) => p.notes.map((n): PianoEvent => ({ ...n, part })))
+    .sort((a, b) => a.tick - b.tick || a.part - b.part);
 }
 
 /** Index of the first event at or after `tick`. */
@@ -48,7 +50,8 @@ function firstAtOrAfter(events: PianoEvent[], tick: number): number {
 export class Scheduler {
   private cursor = 0;
   private committedUntil = -Infinity;
-  piano2 = true;
+  /** Accompaniment parts (indices) that are switched off. */
+  readonly muted = new Set<number>();
   handedOff = 0;
 
   constructor(
@@ -69,7 +72,7 @@ export class Scheduler {
       const time = this.clock.timeAt(e.tick);
       if (time >= horizon) break;
       this.cursor++;
-      if (e.part === 2 && !this.piano2) continue;
+      if (this.muted.has(e.part)) continue;
       this.voice.noteOn(e.midi, e.velocity, Math.max(time, now), this.clock.duration(e.durTicks));
       this.handedOff++;
     }

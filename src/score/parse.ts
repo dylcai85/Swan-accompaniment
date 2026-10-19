@@ -1,5 +1,5 @@
 import { Midi } from './midiLib';
-import type { Note, Score } from './types';
+import type { Note, Part, Score } from './types';
 
 const DEFAULT_BPM = 120;
 
@@ -19,13 +19,14 @@ function toNotes(track: Midi['tracks'][number]): Note[] {
     .sort((a, b) => a.tick - b.tick || a.midi - b.midi);
 }
 
-/** Make a line monophonic: each note ends no later than the next onset. Returns the number clipped. */
+/** Legato overlaps: each note ends no later than the next later onset. Returns the number clipped. */
 function clipOverlaps(notes: Note[]): number {
   let clipped = 0;
   for (let i = 0; i + 1 < notes.length; i++) {
     const cur = notes[i]!;
     const gap = notes[i + 1]!.tick - cur.tick;
-    if (cur.durTicks > gap) {
+    // gap 0 is a chord (e.g. a double stop): leave it alone.
+    if (gap > 0 && cur.durTicks > gap) {
       cur.durTicks = gap;
       clipped++;
     }
@@ -34,8 +35,8 @@ function clipOverlaps(notes: Note[]): number {
 }
 
 /**
- * Parse a MIDI file into a Score: a cello line plus two piano parts, in ticks.
- * Tracks are found by name ("Cello", "Piano 1", "Piano 2"), else by order of non-empty tracks.
+ * Parse a MIDI file into a Score, in ticks. The first track with notes is the solo, whatever it
+ * is called or whichever instrument it is; every other track with notes is accompaniment.
  */
 export function parseScore(bytes: ArrayBuffer | Uint8Array, name: string): Score {
   let midi: Midi;
@@ -60,23 +61,20 @@ export function parseScore(bytes: ArrayBuffer | Uint8Array, name: string): Score
   if (bpms.length === 0) warnings.push(`No tempo events in file; assuming ${DEFAULT_BPM} bpm.`);
   const nominalBpm = bpms.length ? median(bpms) : DEFAULT_BPM;
 
-  const withNotes = midi.tracks.filter((t) => t.notes.length > 0);
-  const byName = (re: RegExp) => withNotes.find((t) => re.test(t.name));
-  let cello = byName(/cello/i);
-  let piano1 = byName(/piano\s*1/i);
-  let piano2 = byName(/piano\s*2/i);
-  if (!cello || !piano1) {
-    warnings.push('Track names not recognized; using track order (cello, piano 1, piano 2).');
-    [cello, piano1, piano2] = withNotes;
-  }
-  if (!cello) throw new ScoreParseError('No tracks with notes found.');
+  const skippedTracks: string[] = [];
+  const parts: Part[] = [];
+  midi.tracks.forEach((t, i) => {
+    if (t.notes.length === 0) return;
+    const partName = t.name.trim() || `Track ${i + 1}`;
+    if (t.instrument.percussion) skippedTracks.push(partName);
+    else parts.push({ name: partName, notes: toNotes(t) });
+  });
+  const [solo, ...accompaniment] = parts;
+  if (!solo) throw new ScoreParseError('No tracks with notes found.');
+  if (accompaniment.length === 0) warnings.push('Only one track with notes: there is no accompaniment to play.');
+  const soloOverlapsClipped = clipOverlaps(solo.notes);
 
-  const celloNotes = toNotes(cello);
-  const celloOverlapsClipped = clipOverlaps(celloNotes);
-  const piano1Notes = piano1 ? toNotes(piano1) : [];
-  const piano2Notes = piano2 ? toNotes(piano2) : [];
-
-  const lastOnset = Math.max(...[celloNotes, piano1Notes, piano2Notes].flatMap((ns) => ns.map((n) => n.tick)));
+  const lastOnset = Math.max(...parts.flatMap((p) => p.notes.map((n) => n.tick)));
   const bars = Math.floor(lastOnset / ticksPerBar) + 1;
 
   return {
@@ -87,10 +85,9 @@ export function parseScore(bytes: ArrayBuffer | Uint8Array, name: string): Score
     ticksPerBeat,
     nominalBpm,
     bars,
-    cello: celloNotes,
-    piano1: piano1Notes,
-    piano2: piano2Notes,
-    info: { tempoEvents: bpms.length, celloOverlapsClipped, warnings },
+    solo,
+    accompaniment,
+    info: { tempoEvents: bpms.length, soloOverlapsClipped, skippedTracks, warnings },
   };
 }
 
@@ -100,9 +97,8 @@ export function summarizeScore(s: Score): string {
     s.name,
     `${s.bars} bars`,
     `${s.timeSig[0]}/${s.timeSig[1]}`,
-    `cello ${s.cello.length}`,
-    `piano 1 ${s.piano1.length}`,
-    `piano 2 ${s.piano2.length}`,
+    `solo: ${s.solo.name} (${s.solo.notes.length} notes)`,
+    `accompaniment: ${s.accompaniment.length} ${s.accompaniment.length === 1 ? 'track' : 'tracks'} (${s.accompaniment.reduce((n, p) => n + p.notes.length, 0)} notes)`,
     `nominal ${Math.round(s.nominalBpm)} bpm`,
   ].join(' · ');
 }

@@ -24,7 +24,7 @@ function range(notes: Note[]): string {
 function trackLine(label: string, notes: Note[]): string {
   const first = notes[0] ? tickToBarBeat(score, notes[0].tick) : null;
   const offGrid = new Set(notes.filter((n) => n.tick % sixteenth !== 0).map((n) => n.tick)).size;
-  return `${label.padEnd(8)} ${String(notes.length).padStart(4)} notes  ${range(notes).padEnd(8)} first onset ${
+  return `${label.padEnd(16)} ${String(notes.length).padStart(4)} notes  ${range(notes).padEnd(8)} first onset ${
     first ? `bar ${first.bar} beat ${first.beat}` : '-'
   }  off-16th-grid onsets ${offGrid}`;
 }
@@ -40,19 +40,19 @@ function fmtBeat(beat: number): string {
 function print(s: Score): void {
   console.log(`${s.name}: PPQ ${s.ppq}, ${s.timeSig[0]}/${s.timeSig[1]}, ${s.ticksPerBar} ticks/bar, ${s.bars} bars`);
   console.log(`tempo events ${s.info.tempoEvents} (ignored), nominal ${s.nominalBpm.toFixed(1)} bpm (median)`);
-  console.log(trackLine('cello', s.cello) + `  overlaps clipped ${s.info.celloOverlapsClipped}`);
-  console.log(trackLine('piano 1', s.piano1));
-  console.log(trackLine('piano 2', s.piano2));
+  console.log(trackLine(`solo: ${s.solo.name}`, s.solo.notes) + `  overlaps clipped ${s.info.soloOverlapsClipped}`);
+  s.accompaniment.forEach((p, i) => console.log(trackLine(`acc ${i + 1}: ${p.name}`, p.notes)));
+  for (const t of s.info.skippedTracks) console.log(`skipped (percussion): ${t}`);
   for (const w of s.info.warnings) console.log(`warning: ${w}`);
   console.log('');
-  console.log('bar | piano1 | piano2 | cello (beat:note)');
+  const cols = s.accompaniment.map((_, i) => `acc${i + 1}`.padStart(5));
+  console.log(`bar | ${cols.join(' | ')} | solo (beat:note)`);
   for (let bar = 1; bar <= s.bars; bar++) {
-    const cello = inBar(s.cello, bar)
+    const solo = inBar(s.solo.notes, bar)
       .map((n) => `${fmtBeat(tickToBarBeat(s, n.tick).beat)}:${midiToName(n.midi)}`)
       .join(' ');
-    console.log(
-      `${String(bar).padStart(3)} | ${String(inBar(s.piano1, bar).length).padStart(6)} | ${String(inBar(s.piano2, bar).length).padStart(6)} | ${cello}`,
-    );
+    const counts = s.accompaniment.map((p) => String(inBar(p.notes, bar).length).padStart(5));
+    console.log(`${String(bar).padStart(3)} | ${counts.join(' | ')} | ${solo}`);
   }
 }
 

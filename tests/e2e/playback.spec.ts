@@ -22,7 +22,7 @@ const playback = (page: Page) => page.evaluate(() => window.__debug.playback as 
 test('offline render: note onsets in the audio match the scheduler through a rate change', async ({ page }) => {
   await loadMini(page);
   const result = await page.evaluate(() =>
-    window.__debug.renderOffline!({ seconds: 10, piano2: false, rateChanges: [{ at: 5, rate: 0.75 }] }),
+    window.__debug.renderOffline!({ seconds: 10, mutedParts: [1], rateChanges: [{ at: 5, rate: 0.75 }] }),
   );
   const { expected, detected } = result as { expected: number[]; detected: number[] };
   expect(expected.length).toBeGreaterThan(40);
@@ -40,6 +40,9 @@ test('transport: play, change speed, pause, go to bar, with the synth fallback',
   await loadMini(page);
   const status = page.getByTestId('transport-status');
   await expect(status).toHaveText('Ready. Click Play.');
+  // One on/off box per accompaniment track, named as in the file.
+  await expect(page.getByTestId('transport-parts')).toHaveText(/Piano 1\s+Piano 2/);
+  await page.locator('[data-testid="transport-part-1"]').uncheck();
 
   await page.getByTestId('transport-play').click();
   await expect(page.getByTestId('transport-play')).toHaveText('Pause');

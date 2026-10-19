@@ -19,7 +19,7 @@ export function mountTransport(root: HTMLElement): (score: Score | null) => void
         <input type="range" min="0.5" max="1.5" step="0.05" value="1" data-testid="transport-rate" />
         <span data-testid="transport-rate-label">1.00×</span>
       </label>
-      <label><input type="checkbox" checked data-testid="transport-piano2" /> Piano 2</label>
+      <span class="parts" data-testid="transport-parts"></span>
       <p data-testid="transport-status" role="status">Load a score to play the piano part.</p>
     </section>
   `;
@@ -29,7 +29,7 @@ export function mountTransport(root: HTMLElement): (score: Score | null) => void
   const goBtn = q<HTMLButtonElement>('transport-go');
   const rateInput = q<HTMLInputElement>('transport-rate');
   const rateLabel = q<HTMLSpanElement>('transport-rate-label');
-  const piano2Box = q<HTMLInputElement>('transport-piano2');
+  const partsEl = q<HTMLSpanElement>('transport-parts');
   const status = q<HTMLParagraphElement>('transport-status');
 
   let score: Score | null = null;
@@ -71,7 +71,7 @@ export function mountTransport(root: HTMLElement): (score: Score | null) => void
       creating = null;
       if (score !== forScore) return null; // a different score was loaded meanwhile
       player = new Player(ctx, forScore);
-      player.piano2 = piano2Box.checked;
+      partsEl.querySelectorAll<HTMLInputElement>('input').forEach((box, i) => player!.setPartEnabled(i, box.checked));
       player.setRate(rate());
       player.onChange = render;
       return player;
@@ -113,8 +113,10 @@ export function mountTransport(root: HTMLElement): (score: Score | null) => void
     render();
   });
 
-  piano2Box.addEventListener('change', () => {
-    if (player) player.piano2 = piano2Box.checked;
+  // One on/off box per accompaniment track, named as in the file.
+  partsEl.addEventListener('change', (e) => {
+    const box = e.target as HTMLInputElement;
+    player?.setPartEnabled(Number(box.dataset.part), box.checked);
   });
 
   return (next) => {
@@ -123,6 +125,18 @@ export function mountTransport(root: HTMLElement): (score: Score | null) => void
     creating = null;
     score = next;
     if (score) barInput.max = String(score.bars);
+    partsEl.replaceChildren(
+      ...(score?.accompaniment ?? []).map((p, i) => {
+        const label = document.createElement('label');
+        const box = document.createElement('input');
+        box.type = 'checkbox';
+        box.checked = true;
+        box.dataset.part = String(i);
+        box.dataset.testid = `transport-part-${i}`;
+        label.append(box, ` ${p.name}`);
+        return label;
+      }),
+    );
     render();
   };
 }

@@ -2,6 +2,10 @@
 
 One entry per milestone, newest first. Each entry: what changed, how it was verified, the Dylan test, and what is still unverified. Work is committed directly to `main`.
 
+## Track roles: first track is the solo (2026-10-19)
+
+At Dylan's request the parser no longer looks for track names. The first track with notes is the solo (any instrument, any name); every other track with notes is accompaniment and is played back, whatever it is called. Percussion tracks (MIDI channel 10) are skipped, since their note numbers are drum sounds rather than pitches. Legato overlaps in the solo are still clipped, but chords (e.g. double stops) are kept. The transport now has one on/off box per accompaniment track, labelled with the track's name (for the Swan: Piano 1, Piano 2). `Score` is now `{ solo, accompaniment[] }` instead of `cello/piano1/piano2`. Verified with a unit test on a file with renamed tracks (Violin, Strings, an unnamed track, Drums), the existing mini-score and real-score tests (real score present: solo "Cello" 113 notes, accompaniment 919 + 258), and e2e. The status line now reads e.g. "solo: Cello (113 notes) · accompaniment: 2 tracks (1177 notes)".
+
 ## M3: Mic input and pitch tracker (2026-10-19)
 
 **Needs Dylan:** the cello test below (wired headphones, cello ready).

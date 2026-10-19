@@ -8,7 +8,8 @@ import { OscVoice } from './voices';
 export interface RenderOptions {
   seconds: number;
   sampleRate?: number;
-  piano2?: boolean;
+  /** Accompaniment tracks (indices) to leave out. */
+  mutedParts?: number[];
   /** Rate changes applied at the first pump at or after `at` seconds. */
   rateChanges?: { at: number; rate: number }[];
 }
@@ -34,7 +35,7 @@ export async function renderOffline(score: Score, opts: RenderOptions): Promise<
     stopAll: (time) => osc.stopAll(time),
   };
   const sched = new Scheduler(pianoEvents(score), new ScoreClock(nominalTicksPerSec(score)), voice);
-  sched.piano2 = opts.piano2 ?? true;
+  for (const p of opts.mutedParts ?? []) sched.muted.add(p);
   const pending = [...(opts.rateChanges ?? [])].sort((a, b) => a.at - b.at);
   for (let k = 0; k * 0.025 < opts.seconds; k++) {
     const now = k * 0.025;

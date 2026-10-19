@@ -55,12 +55,10 @@ export class Player {
     return this.sched.clock.rate;
   }
 
-  get piano2(): boolean {
-    return this.sched.piano2;
-  }
-
-  set piano2(on: boolean) {
-    this.sched.piano2 = on;
+  /** Switch one accompaniment track (index into `score.accompaniment`) on or off. */
+  setPartEnabled(part: number, on: boolean): void {
+    if (on) this.sched.muted.delete(part);
+    else this.sched.muted.add(part);
   }
 
   /** Current score position (ticks). */

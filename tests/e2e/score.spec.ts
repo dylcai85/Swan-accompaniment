@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 const MINI = 'tests/fixtures/mini-score.mid';
-const LOADED = 'Score loaded: mini-score.mid · 6 bars · 3/4 · cello 10 · piano 1 72 · piano 2 19 · nominal 80 bpm';
+const LOADED = 'Score loaded: mini-score.mid · 6 bars · 3/4 · solo: Cello (10 notes) · accompaniment: 2 tracks (91 notes) · nominal 80 bpm';
 
 test('loads a score from the file picker, caches it across reloads, and forgets it', async ({ page }) => {
   await page.goto('./');

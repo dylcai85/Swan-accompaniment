@@ -109,11 +109,11 @@ describe('Scheduler', () => {
     });
   });
 
-  it('skips only piano 2 notes when piano 2 is off', () => {
+  it('skips only the notes of an accompaniment track that is switched off', () => {
     const { voice, sched } = setup(mini);
-    sched.piano2 = false;
+    sched.muted.add(1); // Piano 2
     run(sched, 60);
-    expect(voice.played).toHaveLength(mini.piano1.length);
+    expect(voice.played).toHaveLength(mini.accompaniment[0]!.notes.length);
   });
 
   it('seeks to a bar without stale notes', () => {

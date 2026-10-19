@@ -7,6 +7,13 @@ export interface Note {
   velocity: number;
 }
 
+/** One track of the file. */
+export interface Part {
+  /** Track name from the file, or "Track N" if it has none. */
+  name: string;
+  notes: Note[];
+}
+
 export interface Score {
   name: string;
   ppq: number;
@@ -19,14 +26,16 @@ export interface Score {
   nominalBpm: number;
   /** Bar number (1-based) of the last note onset. */
   bars: number;
-  /** Monophonic: sorted by tick, overlaps clipped. */
-  cello: Note[];
-  piano1: Note[];
-  piano2: Note[];
-  /** Diagnostics from parsing, e.g. how many cello overlaps were clipped. */
+  /** The first track with notes: the part the soloist plays (sorted by tick, legato overlaps clipped). */
+  solo: Part;
+  /** Every other track with notes, in file order: played back as the accompaniment. */
+  accompaniment: Part[];
+  /** Diagnostics from parsing. */
   info: {
     tempoEvents: number;
-    celloOverlapsClipped: number;
+    soloOverlapsClipped: number;
+    /** Percussion tracks are skipped: their note numbers are drum sounds, not pitches. */
+    skippedTracks: string[];
     warnings: string[];
   };
 }

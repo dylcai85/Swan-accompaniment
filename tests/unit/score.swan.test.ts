@@ -21,9 +21,9 @@ describe.skipIf(!present)(`real score (${SWAN})`, () => {
   });
 
   it('has 113 cello, 919 piano 1 and 258 piano 2 notes', () => {
-    expect(score.cello).toHaveLength(113);
-    expect(score.piano1).toHaveLength(919);
-    expect(score.piano2).toHaveLength(258);
+    expect(score.solo.name).toBe('Cello');
+    expect(score.solo.notes).toHaveLength(113);
+    expect(score.accompaniment.map((p) => p.notes.length)).toEqual([919, 258]);
   });
 
   it('has 28 bars (the final piano chord starts in bar 28)', () => {
@@ -31,18 +31,18 @@ describe.skipIf(!present)(`real score (${SWAN})`, () => {
   });
 
   it('starts the cello at bar 2 beat 1', () => {
-    expect(tickToBarBeat(score, score.cello[0]!.tick)).toEqual({ bar: 2, beat: 1 });
+    expect(tickToBarBeat(score, score.solo.notes[0]!.tick)).toEqual({ bar: 2, beat: 1 });
   });
 
   it('has every cello onset on the sixteenth grid', () => {
-    expect(score.cello.every((n) => n.tick % (score.ppq / 4) === 0)).toBe(true);
+    expect(score.solo.notes.every((n) => n.tick % (score.ppq / 4) === 0)).toBe(true);
   });
 
   it('makes the cello monophonic by clipping its 60 legato overlaps', () => {
-    expect(score.info.celloOverlapsClipped).toBe(60);
-    for (let i = 0; i + 1 < score.cello.length; i++) {
-      expect(score.cello[i]!.tick).toBeLessThan(score.cello[i + 1]!.tick);
-      expect(score.cello[i]!.tick + score.cello[i]!.durTicks).toBeLessThanOrEqual(score.cello[i + 1]!.tick);
+    expect(score.info.soloOverlapsClipped).toBe(60);
+    for (let i = 0; i + 1 < score.solo.notes.length; i++) {
+      expect(score.solo.notes[i]!.tick).toBeLessThan(score.solo.notes[i + 1]!.tick);
+      expect(score.solo.notes[i]!.tick + score.solo.notes[i]!.durTicks).toBeLessThanOrEqual(score.solo.notes[i + 1]!.tick);
     }
   });
 });
