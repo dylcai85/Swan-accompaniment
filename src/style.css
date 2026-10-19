@@ -40,3 +40,24 @@ footer {
 .score-panel label {
   margin-right: 1rem;
 }
+.transport {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid #ddd;
+  background: #fff;
+}
+.transport p {
+  flex-basis: 100%;
+  margin: 0;
+}
+.transport input[type='number'] {
+  width: 4rem;
+}
+.transport .rate span {
+  display: inline-block;
+  min-width: 7rem;
+}

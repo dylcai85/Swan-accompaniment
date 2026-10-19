@@ -1,7 +1,11 @@
 import './style.css';
 import { startAudio, type AudioInfo } from './audio/context';
 import { formatBuildStamp } from './buildInfo';
+import { debug } from './debug';
+import type { RenderOptions } from './playback/render';
+import type { Score } from './score/types';
 import { mountScorePanel } from './ui/scorePanel';
+import { mountTransport } from './ui/transport';
 
 const ms = (s: number | null): string => (s === null ? 'n/a' : `${Math.round(s * 1000)} ms`);
 
@@ -18,17 +22,27 @@ function render(root: HTMLElement): void {
         and Bluetooth adds too much delay.
       </p>
       <div id="score-panel"></div>
+      <div id="transport"></div>
       <button type="button" id="start" data-testid="start">Start</button>
       <p id="status" data-testid="status" role="status">Not started.</p>
     </main>
     <footer>
+      <span>Piano: Salamander Grand Piano by Alexander Holm, CC-BY 3.0</span> ·
       <span data-testid="build-stamp">${formatBuildStamp(__BUILD_ID__, __BUILD_TIME__)}</span>
     </footer>
   `;
 
-  mountScorePanel(root.querySelector<HTMLElement>('#score-panel')!, () => {
-    // The score is used from M2 on (playback).
+  let current: Score | null = null;
+  const setTransportScore = mountTransport(root.querySelector<HTMLElement>('#transport')!);
+  mountScorePanel(root.querySelector<HTMLElement>('#score-panel')!, (score) => {
+    current = score;
+    setTransportScore(score);
   });
+  debug.renderOffline = async (opts) => {
+    if (!current) throw new Error('no score loaded');
+    const { renderOffline } = await import('./playback/render');
+    return renderOffline(current, opts as RenderOptions);
+  };
 
   const button = root.querySelector<HTMLButtonElement>('#start')!;
   const status = root.querySelector<HTMLParagraphElement>('#status')!;
