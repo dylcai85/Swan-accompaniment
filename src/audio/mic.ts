@@ -4,11 +4,24 @@ import { debug } from '../debug';
 
 export const CHUNK_SIZE = 1024;
 
+/**
+ * Ways to open the mic, most accurate first. Hard rule 3 wants all processing off, but on some
+ * Macs Chrome delivers pure digital silence in that mode while wired headphones are plugged in;
+ * the later modes are fallbacks the panel tries only when an earlier one sends exact zeros.
+ */
+export const MIC_MODES = [
+  { id: 'raw-mono', label: 'raw (best for pitch)', echoCancellation: false, channelCount: 1 },
+  { id: 'raw', label: 'raw, device channels', echoCancellation: false, channelCount: undefined },
+  { id: 'echo-cancel', label: 'with echo cancellation (fallback)', echoCancellation: true, channelCount: undefined },
+] as const;
+export type MicMode = (typeof MIC_MODES)[number];
+
 export interface MicInput {
   deviceId: string;
   label: string;
   /** The mic's own settings as reported by the browser (sample rate etc.), for diagnostics. */
   settings: () => string;
+  mode: MicMode;
   /** Called if the device goes away (unplugged, or the OS switched it off). */
   onEnded: () => void;
   /** Stop capture and release the microphone. */
@@ -21,23 +34,24 @@ export async function listMics(): Promise<MediaDeviceInfo[]> {
 }
 
 /**
- * Open the mic with all browser processing off (hard rule 3) and call `onFrame` with the
- * latest `frameSize` samples every CHUNK_SIZE samples. `frame` is reused between calls.
+ * Open the mic (noise suppression and auto gain always off; see MIC_MODES) and call `onFrame`
+ * with the latest `frameSize` samples every CHUNK_SIZE samples. `frame` is reused between calls.
  */
 export async function startMic(
   ctx: AudioContext,
   frameSize: number,
   onFrame: (frame: Float32Array, chunk: Float32Array) => void,
   deviceId?: string,
+  mode: MicMode = MIC_MODES[0],
 ): Promise<MicInput> {
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: {
       // A preference, not a requirement: if that mic is gone, fall back to the default one.
       deviceId: deviceId ? { ideal: deviceId } : undefined,
-      echoCancellation: false,
+      echoCancellation: mode.echoCancellation,
       noiseSuppression: false,
       autoGainControl: false,
-      channelCount: 1,
+      ...(mode.channelCount ? { channelCount: mode.channelCount } : {}),
     },
   });
   const workletUrl = new URL('./capture.worklet.js', import.meta.url);
@@ -65,6 +79,7 @@ export async function startMic(
   const input: MicInput = {
     deviceId: track?.getSettings().deviceId ?? '',
     label: track?.label ?? 'microphone',
+    mode,
     settings: () => {
       const s = track?.getSettings();
       if (!s) return 'no track';

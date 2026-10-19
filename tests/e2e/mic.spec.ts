@@ -62,3 +62,27 @@ test('the pitch display follows the fake microphone', async ({ page }) => {
   await page.getByTestId('mic-start').click();
   await expect(page.getByTestId('mic-start')).toHaveText('Start mic');
 });
+
+test('falls back to another mic mode when the raw stream is pure silence (MacBook + headphones)', async ({ page }) => {
+  // Simulate Chrome on a Mac with wired headphones: raw capture delivers exact zeros,
+  // capture with echo cancellation delivers real audio.
+  await page.addInitScript(() => {
+    const real = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+    navigator.mediaDevices.getUserMedia = async (c?: MediaStreamConstraints) => {
+      const audio = c?.audio as MediaTrackConstraints | undefined;
+      if (audio && audio.echoCancellation === true) return real(c);
+      const ctx = new AudioContext();
+      const silent = ctx.createMediaStreamDestination();
+      const stream = await real(c);
+      const out = new MediaStream(silent.stream.getAudioTracks());
+      // Keep the real track's label so the UI looks the same.
+      Object.defineProperty(out.getAudioTracks()[0]!, 'label', { value: stream.getAudioTracks()[0]!.label });
+      stream.getTracks().forEach((t) => t.stop());
+      return out;
+    };
+  });
+  await page.goto('./');
+  await page.getByTestId('mic-start').click();
+  await expect(page.getByTestId('mic-diagnostics')).toContainText('mode echo-cancel', { timeout: 10_000 });
+  await expect.poll(async () => (await page.evaluate(() => window.__debug.pitch))?.name, { timeout: 10_000 }).toMatch(/^(A3|D4)$/);
+});

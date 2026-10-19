@@ -1,5 +1,5 @@
 import { getAudioContext } from '../audio/context';
-import { listMics, startMic, type MicInput } from '../audio/mic';
+import { listMics, MIC_MODES, startMic, type MicInput } from '../audio/mic';
 import { debug, type PitchDebug } from '../debug';
 import { PitchTracker } from '../dsp/pitch';
 import { freqToNote, PitchSmoother } from '../dsp/smooth';
@@ -8,6 +8,10 @@ const LOG_SIZE = 200;
 const STORED_MIC = 'swan.micDeviceId';
 /** Below this level for ~2 s, the selected input is treated as silent (e.g. a headphone jack with no mic). */
 const SILENT_DB = -85;
+/** Exact digital zeros (not just a quiet room): the browser is handing us a dead stream. */
+const ZERO_DB = -150;
+/** Chunks of pure zeros (~1.5 s) before trying the next way of opening the mic. */
+const ZERO_CHUNKS_BEFORE_FALLBACK = 70;
 
 function storedMic(): string {
   try {
@@ -56,6 +60,7 @@ export function mountMicPanel(root: HTMLElement): void {
   let watchdog: ReturnType<typeof setTimeout> | null = null;
   let frames = 0;
   let silentFrames = 0;
+  let zeroFrames = 0;
   const log: PitchDebug[] = [];
   debug.pitchLog = log;
 
@@ -67,7 +72,7 @@ export function mountMicPanel(root: HTMLElement): void {
     if (mics.some((m) => m.deviceId === selected)) deviceSelect.value = selected;
   };
 
-  const start = async () => {
+  const start = async (modeIndex = 0) => {
     const ctx = await getAudioContext();
     const tracker = new PitchTracker(ctx.sampleRate);
     const smoother = new PitchSmoother();
@@ -78,6 +83,8 @@ export function mountMicPanel(root: HTMLElement): void {
 
     frames = 0;
     silentFrames = 0;
+    zeroFrames = 0;
+    const mode = MIC_MODES[modeIndex]!;
     detail.textContent = 'Starting microphone…';
     mic = await startMic(
       ctx,
@@ -94,6 +101,16 @@ export function mountMicPanel(root: HTMLElement): void {
         lastLevelDb = levelDb;
         meter.style.width = `${Math.max(0, Math.min(100, ((levelDb + 60) / 60) * 100))}%`;
         silentFrames = levelDb < SILENT_DB ? silentFrames + 1 : 0;
+        zeroFrames = levelDb < ZERO_DB ? zeroFrames + 1 : -Infinity; // any real sound: this mode works
+        if (zeroFrames === ZERO_CHUNKS_BEFORE_FALLBACK && modeIndex + 1 < MIC_MODES.length) {
+          const next = MIC_MODES[modeIndex + 1]!;
+          setTimeout(() => {
+            stop();
+            detail.textContent = `The mic sent pure silence (${mode.label}); trying ${next.label}…`;
+            start(modeIndex + 1).catch(fail);
+          });
+          return;
+        }
         levelHint.textContent =
           peak > 0.99
             ? 'Clipping: move the mic back'
@@ -129,6 +146,7 @@ export function mountMicPanel(root: HTMLElement): void {
         }
       },
       deviceSelect.value || storedMic() || undefined,
+      mode,
     );
     mic.onEnded = () => {
       stop();
@@ -140,6 +158,7 @@ export function mountMicPanel(root: HTMLElement): void {
       if (!mic) return;
       diag.textContent =
         `Diagnostics: page audio ${ctx.state} at ${ctx.sampleRate} Hz · mic "${mic.label}" ${mic.settings()} · ` +
+        `mode ${mic.mode.id} · ` +
         `chunks received ${frames} · level ${Number.isFinite(lastLevelDb) ? Math.round(lastLevelDb) : '—'} dB`;
     };
     showDiag();

@@ -23,6 +23,8 @@ One entry per milestone, newest first. Each entry: what changed, how it was veri
 
 **Unverified:** a real microphone and a real cello (bow noise, room, slides, how the browser and your mic handle the "processing off" settings). The first frame or two of a note can read slightly off while the window still contains the silence before it.
 
+**Follow-up after Dylan's first try:** on his MacBook Air the mic worked without headphones but the page received exact digital silence (-180 dB, chunks arriving, 48 kHz on both sides) with wired headphones plugged in, while macOS still showed input. Added: a Diagnostics line (page audio state/rate, mic track state/rate, mode, chunks received, level); a silent-input warning; mic restart on device changes; a remembered mic choice; and an automatic fallback through `MIC_MODES` (raw mono → raw → echo cancellation on) when a mode delivers pure zeros for ~1.5 s. e2e simulates that Mac behaviour and checks the fallback finds the working mode. Whether echo-cancellation mode works on his Mac, and how it affects pitch accuracy, is unverified.
+
 **Dylan test** (wired headphones, Chrome on a computer, cello ready)
 - [ ] Open https://dylcai85.github.io/Swan-accompaniment/ and press Ctrl+Shift+R (Mac: Cmd+Shift+R).
 - [ ] Click **Start mic**. When Chrome asks to use your microphone, click **Allow**.

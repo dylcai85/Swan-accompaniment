@@ -50,7 +50,7 @@ score (MIDI) -> piano events in score time -> SCORE CLOCK <------------------+
 
 1. **Audio thread:** no allocations, no `console.log`, no object creation inside `AudioWorkletProcessor.process()`. Preallocate buffers. Post results to the main thread in batches.
 2. **Sample rate:** always use `audioContext.sampleRate`. Never assume 44100 or 48000.
-3. **getUserMedia constraints:** `echoCancellation: false`, `noiseSuppression: false`, `autoGainControl: false`, mono. AudioContext `latencyHint: 'interactive'`. Create/resume the context from a click handler (autoplay policy).
+3. **getUserMedia constraints:** `echoCancellation: false`, `noiseSuppression: false`, `autoGainControl: false`, mono. AudioContext `latencyHint: 'interactive'`. Create/resume the context from a click handler (autoplay policy). Exception: if the raw stream is pure digital silence (seen on a MacBook Air with wired headphones plugged in), the mic panel falls back to other modes, last with echo cancellation on (`MIC_MODES` in `src/audio/mic.ts`); the mode in use is shown in Diagnostics.
 4. **Headphones are required** (wired recommended). Speaker bleed corrupts pitch tracking. The UI must say so and show the current latency estimate.
 5. **Tuning-agnostic matching.** Dylan's cello may not be at A=440. The follower estimates a global tuning offset (cents) and matches relative to it.
 6. **Vite `base`** must match the GitHub Pages path, and the worklet must be loaded via `new URL(..., import.meta.url)` so it works under that base path. Verify with a production build, not just `dev`.
