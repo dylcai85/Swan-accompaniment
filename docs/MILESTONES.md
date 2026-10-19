@@ -2,6 +2,34 @@
 
 One entry per milestone, newest first. Each entry: what changed, how it was verified, the Dylan test, and what is still unverified. Work is committed directly to `main`.
 
+## M2: Piano playback engine (2026-10-19)
+
+**Needs Dylan:** the listening test below, with wired headphones.
+
+**Changed**
+- `src/playback/clock.ts`: score clock, `tick(t) = anchorTick + rate * ticksPerSec * (t - anchorTime)`. Ticks become seconds only here.
+- `src/playback/scheduler.ts`: lookahead scheduler (120 ms window, pumped every 25 ms). Each piano note is handed to the voice exactly once, in order. **Design choice:** a rate change takes effect at the end of the window already handed off, so scheduled notes never move and there are no doubled or dropped notes; the cost is that a change is heard up to ~120 ms late.
+- `src/playback/voices.ts`: Salamander piano via Tone.js `Sampler` with light reverb (Tone runs on our AudioContext; its Transport is not used), and a simple oscillator synth used in tests and as a fallback until or unless the samples load.
+- `src/playback/player.ts` + `src/ui/transport.ts`: Play/Pause, Bar + Go, Speed slider 0.50–1.50× (live), Piano 2 on/off, status line with the current bar and which sound is in use. Footer credits Salamander (CC-BY 3.0).
+- `window.__debug.playback` (state, tick, bar, rate, notes handed off, voice) and `__debug.renderOffline()` for tests.
+
+**Dependency:** `tone` 15.1.22 (runtime): the Sampler and reverb for piano sound, as named in CLAUDE.md. Loaded only when you first press Play (separate 341 kB chunk; the page itself is 47 kB).
+
+**Verified** (cloud sandbox, Chromium 141, no speakers; real score present unless noted)
+- Unit tests: clock continuity across rate changes, seek, inverse mapping; scheduler note times at rate 1 and 0.5, every note handed off once and in order through several rate changes, new rate applies after the committed window, Piano 2 off, seek. Real score (present): all 1177 piano notes handed off exactly once with rate changes.
+- Offline render in Chromium (`OfflineAudioContext`, mini score, piano 1, 10 s, rate 1.0 → 0.75 at 5 s): 47 onsets detected in the audio, all within 5 ms of the scheduled times (mean 2 ms); note spacing grows by 1/0.75 after the change.
+- e2e UI flow: Play advances the position, the speed slider changes the rate live, Pause freezes the position, Go to bar 4 lands on bar 4 beat 1. The sample CDN is blocked in the sandbox, so the test also confirmed the synth fallback kicks in and the status says so.
+- All local commands green; without `local/swan.mid` the 7 real-score unit tests skip.
+
+**Unverified (no speakers here):** how the piano sounds, whether the Salamander samples load in your browser, and real-device timing or glitches while dragging the slider.
+
+**Dylan test** (wired headphones, Chrome on a computer)
+- [ ] Open https://dylcai85.github.io/Swan-accompaniment/ (load `swan.mid` if it says "No score loaded").
+- [ ] Click **Play**. Within a few seconds the line under the controls should say "Piano ready". Listen for about 30 seconds: acceptable, or too dry / choppy / needs pedal or more reverb?
+- [ ] While it plays, drag **Speed** slowly down to 0.60 and back up to 1.30. Smooth? Any skipped, doubled or stuck notes?
+- [ ] Untick **Piano 2**, listen, tick it again. Which do you prefer?
+- [ ] Click **Pause**. Type 14 in the **Bar** box, click **Go**, then **Play**. Does it start cleanly at bar 14?
+
 ## CI trimmed (2026-10-19)
 
 At Dylan's request CI is now minimal: on pushes to `main` (docs-only changes skipped) it runs `npm ci`, `check:no-score`, `build`, `check:no-score` on dist, then deploys to Pages. Typecheck, unit tests, e2e, `score:inspect` and `eval` run locally before every push instead.
