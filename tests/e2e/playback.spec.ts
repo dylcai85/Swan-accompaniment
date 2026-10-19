@@ -53,7 +53,8 @@ test('transport: play, change speed, pause, go to bar, with the synth fallback',
   await expect(page.getByTestId('transport-rate-label')).toHaveText('0.60× (48 bpm)');
   await expect.poll(async () => (await playback(page))?.rate).toBe(0.6);
 
-  await page.getByTestId('transport-play').click();
+  // Human-length click (press held 150 ms) while the status updates during playback.
+  await page.getByTestId('transport-play').click({ delay: 150 });
   await expect(page.getByTestId('transport-play')).toHaveText('Play');
   const paused = (await playback(page))!;
   expect(paused.state).toBe('paused');

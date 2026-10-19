@@ -34,37 +34,49 @@ export function mountTransport(root: HTMLElement): (score: Score | null) => void
 
   let score: Score | null = null;
   let player: Player | null = null;
+  /** Single in-flight creation, so rapid clicks while audio starts can't create two players. */
+  let creating: Promise<Player | null> | null = null;
 
   const rate = () => Number(rateInput.value);
 
+  /** Write text only when it changed: the status updates ~40x/s during playback. */
+  const setText = (el: HTMLElement, text: string) => {
+    if (el.textContent !== text) el.textContent = text;
+  };
+
   const render = () => {
     const bpm = score ? ` (${Math.round(score.nominalBpm * rate())} bpm)` : '';
-    rateLabel.textContent = `${rate().toFixed(2)}×${bpm}`;
-    playBtn.disabled = goBtn.disabled = !score;
+    setText(rateLabel, `${rate().toFixed(2)}×${bpm}`);
+    if (playBtn.disabled !== !score) playBtn.disabled = goBtn.disabled = !score;
     if (!score) {
-      status.textContent = 'Load a score to play the piano part.';
+      setText(status, 'Load a score to play the piano part.');
       return;
     }
-    playBtn.textContent = player?.state === 'playing' ? 'Pause' : 'Play';
+    setText(playBtn, player?.state === 'playing' ? 'Pause' : 'Play');
     if (!player) {
-      status.textContent = 'Ready. Click Play.';
+      setText(status, 'Ready. Click Play.');
       return;
     }
     const pos = window.__debug.playback;
     const where = pos ? `bar ${pos.bar} beat ${Math.floor(pos.beat)}` : '';
-    status.textContent = `${VOICE_TEXT[player.voiceStatus]} · ${where}`;
+    setText(status, `${VOICE_TEXT[player.voiceStatus]} · ${where}`);
   };
 
   /** The Player is created on the first Play/Go click: audio may only start from a user gesture. */
-  const ensurePlayer = async (): Promise<Player | null> => {
-    if (!score) return null;
-    if (!player) {
-      player = new Player(await getAudioContext(), score);
+  const ensurePlayer = (): Promise<Player | null> => {
+    if (!score) return Promise.resolve(null);
+    if (player) return Promise.resolve(player);
+    const forScore = score;
+    creating ??= getAudioContext().then((ctx) => {
+      creating = null;
+      if (score !== forScore) return null; // a different score was loaded meanwhile
+      player = new Player(ctx, forScore);
       player.piano2 = piano2Box.checked;
       player.setRate(rate());
       player.onChange = render;
-    }
-    return player;
+      return player;
+    });
+    return creating;
   };
 
   playBtn.addEventListener('click', () => {
@@ -92,6 +104,7 @@ export function mountTransport(root: HTMLElement): (score: Score | null) => void
   return (next) => {
     player?.pause();
     player = null;
+    creating = null;
     score = next;
     if (score) barInput.max = String(score.bars);
     render();
