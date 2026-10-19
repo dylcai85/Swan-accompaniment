@@ -7,6 +7,8 @@ export const CHUNK_SIZE = 1024;
 export interface MicInput {
   deviceId: string;
   label: string;
+  /** Called if the device goes away (unplugged, or the OS switched it off). */
+  onEnded: () => void;
   /** Stop capture and release the microphone. */
   stop(): void;
 }
@@ -28,7 +30,8 @@ export async function startMic(
 ): Promise<MicInput> {
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: {
-      deviceId: deviceId ? { exact: deviceId } : undefined,
+      // A preference, not a requirement: if that mic is gone, fall back to the default one.
+      deviceId: deviceId ? { ideal: deviceId } : undefined,
       echoCancellation: false,
       noiseSuppression: false,
       autoGainControl: false,
@@ -57,9 +60,10 @@ export async function startMic(
   };
 
   const track = stream.getAudioTracks()[0];
-  return {
+  const input: MicInput = {
     deviceId: track?.getSettings().deviceId ?? '',
     label: track?.label ?? 'microphone',
+    onEnded: () => {},
     stop() {
       node.port.onmessage = null;
       source.disconnect();
@@ -67,4 +71,6 @@ export async function startMic(
       for (const t of stream.getTracks()) t.stop();
     },
   };
+  if (track) track.onended = () => input.onEnded();
+  return input;
 }

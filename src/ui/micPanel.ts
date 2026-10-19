@@ -5,6 +5,25 @@ import { PitchTracker } from '../dsp/pitch';
 import { freqToNote, PitchSmoother } from '../dsp/smooth';
 
 const LOG_SIZE = 200;
+const STORED_MIC = 'swan.micDeviceId';
+/** Below this level for ~2 s, the selected input is treated as silent (e.g. a headphone jack with no mic). */
+const SILENT_DB = -85;
+
+function storedMic(): string {
+  try {
+    return localStorage.getItem(STORED_MIC) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+function storeMic(id: string): void {
+  try {
+    localStorage.setItem(STORED_MIC, id);
+  } catch {
+    // Not remembered; harmless.
+  }
+}
 const ms = (s: number) => `${Math.round(s * 1000)} ms`;
 
 /** Microphone: device picker, level meter, live note readout, latency. */
@@ -32,6 +51,7 @@ export function mountMicPanel(root: HTMLElement): void {
   let mic: MicInput | null = null;
   let watchdog: ReturnType<typeof setTimeout> | null = null;
   let frames = 0;
+  let silentFrames = 0;
   const log: PitchDebug[] = [];
   debug.pitchLog = log;
 
@@ -40,7 +60,7 @@ export function mountMicPanel(root: HTMLElement): void {
     deviceSelect.innerHTML = mics
       .map((m, i) => `<option value="${m.deviceId}">${m.label || `Microphone ${i + 1}`}</option>`)
       .join('');
-    deviceSelect.value = selected;
+    if (mics.some((m) => m.deviceId === selected)) deviceSelect.value = selected;
   };
 
   const start = async () => {
@@ -53,6 +73,7 @@ export function mountMicPanel(root: HTMLElement): void {
       `analysis window ${ms(tracker.frameSize / ctx.sampleRate)} · ${ctx.sampleRate} Hz`;
 
     frames = 0;
+    silentFrames = 0;
     detail.textContent = 'Starting microphone…';
     mic = await startMic(
       ctx,
@@ -67,7 +88,15 @@ export function mountMicPanel(root: HTMLElement): void {
         }
         const levelDb = 20 * Math.log10(Math.sqrt(sum / chunk.length) + 1e-9);
         meter.style.width = `${Math.max(0, Math.min(100, ((levelDb + 60) / 60) * 100))}%`;
-        levelHint.textContent = peak > 0.99 ? 'Clipping: move the mic back' : levelDb < -45 ? 'Very quiet' : '';
+        silentFrames = levelDb < SILENT_DB ? silentFrames + 1 : 0;
+        levelHint.textContent =
+          peak > 0.99
+            ? 'Clipping: move the mic back'
+            : silentFrames > 90 // ~2 s
+              ? 'This microphone is sending silence: pick another in the Microphone list'
+              : levelDb < -45
+                ? 'Very quiet'
+                : '';
 
         const r = tracker.analyze(frame);
         const freq = smoother.push(r.freq, r.voiced);
@@ -94,8 +123,12 @@ export function mountMicPanel(root: HTMLElement): void {
           detail.textContent = `Mic on: ${mic?.label ?? ''} · level ${Math.round(levelDb)} dB · no clear pitch yet: sing or play one steady note`;
         }
       },
-      deviceSelect.value || undefined,
+      deviceSelect.value || storedMic() || undefined,
     );
+    mic.onEnded = () => {
+      stop();
+      detail.textContent = 'The microphone was disconnected or switched. Pick one in the Microphone list and click Start mic.';
+    };
     startBtn.textContent = 'Stop mic';
     // If no audio arrives, say so instead of sitting silent.
     watchdog = setTimeout(() => {
@@ -133,7 +166,13 @@ export function mountMicPanel(root: HTMLElement): void {
     else start().catch(fail);
   });
 
+  // A plugged/unplugged headset changes the device list (and often the system default input).
+  navigator.mediaDevices?.addEventListener('devicechange', () => {
+    if (mic) void fillDevices(deviceSelect.value);
+  });
+
   deviceSelect.addEventListener('change', () => {
+    storeMic(deviceSelect.value);
     if (!mic) return;
     stop();
     start().catch(fail);
