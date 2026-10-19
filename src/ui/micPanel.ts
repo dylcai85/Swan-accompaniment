@@ -30,6 +30,8 @@ export function mountMicPanel(root: HTMLElement): void {
   const latency = q<HTMLParagraphElement>('mic-latency');
 
   let mic: MicInput | null = null;
+  let watchdog: ReturnType<typeof setTimeout> | null = null;
+  let frames = 0;
   const log: PitchDebug[] = [];
   debug.pitchLog = log;
 
@@ -50,10 +52,13 @@ export function mountMicPanel(root: HTMLElement): void {
       `base ${Number.isFinite(ctx.baseLatency) ? ms(ctx.baseLatency) : 'n/a'} · ` +
       `analysis window ${ms(tracker.frameSize / ctx.sampleRate)} · ${ctx.sampleRate} Hz`;
 
+    frames = 0;
+    detail.textContent = 'Starting microphone…';
     mic = await startMic(
       ctx,
       tracker.frameSize,
       (frame, chunk) => {
+        frames++;
         let sum = 0;
         let peak = 0;
         for (let i = 0; i < chunk.length; i++) {
@@ -86,16 +91,26 @@ export function mountMicPanel(root: HTMLElement): void {
           detail.textContent = `${freq.toFixed(1)} Hz · confidence ${r.confidence.toFixed(2)}`;
         } else {
           noteEl.textContent = '—';
-          detail.textContent = 'Listening… (no clear pitch)';
+          detail.textContent = `Mic on: ${mic?.label ?? ''} · level ${Math.round(levelDb)} dB · no clear pitch yet: sing or play one steady note`;
         }
       },
       deviceSelect.value || undefined,
     );
     startBtn.textContent = 'Stop mic';
+    // If no audio arrives, say so instead of sitting silent.
+    watchdog = setTimeout(() => {
+      if (mic && frames === 0) {
+        detail.textContent =
+          `No sound is reaching the page from "${mic.label}" (audio ${ctx.state}). ` +
+          'Try another microphone in the dropdown, or click Stop mic then Start mic.';
+      }
+    }, 2000);
     await fillDevices(mic.deviceId);
   };
 
   const stop = () => {
+    if (watchdog !== null) clearTimeout(watchdog);
+    watchdog = null;
     mic?.stop();
     mic = null;
     startBtn.textContent = 'Start mic';
