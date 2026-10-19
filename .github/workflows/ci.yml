@@ -1,10 +1,17 @@
-name: CI
+name: CI and deploy
 
+# Work is committed directly to main (see CLAUDE.md). Every push runs the full
+# check suite; pushes to main then deploy to GitHub Pages.
 on:
-  pull_request:
+  push:
+  workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check:
@@ -26,3 +33,26 @@ jobs:
       - run: npm run test:e2e
       - run: npm run score:inspect
       - run: npm run eval
+      - if: github.ref == 'refs/heads/main'
+        uses: actions/configure-pages@v5
+      - if: github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

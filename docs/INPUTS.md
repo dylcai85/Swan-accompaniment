@@ -1,11 +1,11 @@
 # Inputs needed from Dylan
 
-Things only Dylan can provide or do. Tick an item (`[x]`) when it's done; Claude updates this file in the milestone PR that consumes it.
+Things only Dylan can provide or do. Tick an item (`[x]`) when it's done; Claude updates this file in the milestone that consumes it.
 
 ## Accounts and settings
 
 - [ ] **Enable GitHub Pages**: repo Settings → Pages → Build and deployment → Source: **GitHub Actions**. Free for this public repo. *Needed by M0.*
-- [x] **Give Claude push access to this repo**: install the Claude GitHub App on `dylcai85/swan-accompaniment` (https://github.com/apps/claude/installations/select_target), or reconnect GitHub at claude.ai → Settings → Connectors. Without it Claude can commit locally but cannot push branches or open PRs. *Needed by M0 (blocks the setup PR).*
+- [x] **Give Claude push access to this repo**: install the Claude GitHub App on `dylcai85/swan-accompaniment` (https://github.com/apps/claude/installations/select_target), or reconnect GitHub at claude.ai → Settings → Connectors. Without it Claude can commit locally but cannot push. *Needed by M0.*
 
 ## Files (local only unless stated)
 
@@ -23,4 +23,4 @@ Things only Dylan can provide or do. Tick an item (`[x]`) when it's done; Claude
 ## Equipment and live tests
 
 - [ ] **Wired headphones** ready for live tests (no Bluetooth: latency and mic degradation). *Needed from M2.*
-- [ ] **Dylan test** at the end of each milestone (checklist in each PR). *Every milestone, starting M0.*
+- [ ] **Dylan test** at the end of each milestone (checklist in `docs/MILESTONES.md`). *Every milestone, starting M0.*

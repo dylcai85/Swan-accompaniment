@@ -22,10 +22,10 @@ Everything else is done by Claude Code.
 
 ## Milestones
 
-Each milestone is one PR. Each lists what ships, how it is verified without a mic, and what Dylan tests live.
+Work is committed directly to `main`; each milestone ends with an entry in `docs/MILESTONES.md`. Each milestone lists what ships, how it is verified without a mic, and what Dylan tests live.
 
 ### M0: Scaffold and deploy
-- Vite + TS + Vitest + Playwright; `CLAUDE.md` commands all work; CI workflow (typecheck, test, build) on PRs; Pages deploy workflow on `main`; correct Vite `base`.
+- Vite + TS + Vitest + Playwright; `CLAUDE.md` commands all work; CI workflow (typecheck, test, build, e2e) on pushes; Pages deploy workflow on `main`; correct Vite `base`.
 - Page with a Start button, a "headphones required" notice, and a build/version stamp.
 - **Verify:** CI green; deployed URL loads; the production build serves under the Pages base path.
 - **Dylan test:** open the deployed URL and confirm it loads.
@@ -82,7 +82,7 @@ Measured by `npm run eval` at cello note onsets after the follower has locked:
 - After a deliberate mistake (wrong note and a one-bar pause), re-lock within 2 s of the cello resuming.
 - Works across tempo curves: steady, +/-25% gradual, and abrupt ritardando to 60% speed.
 - Runs at least 10x faster than real time in Node.
-Report the full table in every PR that touches follower or pitch code. Regressions block merge.
+Report the full table in the commit and `docs/MILESTONES.md` for every change that touches follower or pitch code. Regressions must be fixed before pushing.
 
 ## Recordings needed from Dylan (cello only, no piano playing)
 
@@ -105,5 +105,5 @@ Use the same mic, position, and room as live use. Play from the top of the Swan.
 8. **Piano sound quality.** The MIDI is likely flat (no pedal, uniform velocity), so raw playback will sound dry. Reverb in M2, dynamics-following in M7, and optionally sustain-pedal heuristics.
 9. **Authored rubato in the MIDI.** The embedded tempo map must not leak into the follower's expectations (see CLAUDE.md). Optionally use it later as a prior for where phrases slow down.
 10. **Browser support.** Develop for desktop Chrome/Edge first. Safari and iOS have AudioWorklet and autoplay quirks; mobile is out of scope until M8.
-11. **Dev loop.** Cloud sessions can't hear anything, so each milestone ends in a Dylan test on the deployed site. Keep PRs small so feedback arrives quickly.
+11. **Dev loop.** Cloud sessions can't hear anything, so each milestone ends in a Dylan test on the deployed site. Keep milestones small so feedback arrives quickly.
 12. **Score accuracy.** The MIDI is only trusted after the M1 PDF spot check. A wrong reference note will look like a follower bug.
