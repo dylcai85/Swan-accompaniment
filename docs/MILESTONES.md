@@ -2,6 +2,36 @@
 
 One entry per milestone, newest first. Each entry: what changed, how it was verified, the Dylan test, and what is still unverified. Work is committed directly to `main`.
 
+## M3: Mic input and pitch tracker (2026-10-19)
+
+**Needs Dylan:** the cello test below (wired headphones, cello ready).
+
+**Changed**
+- `src/dsp/pitch.ts`: YIN pitch tracker in pure TS (cumulative mean normalized difference, threshold 0.15, parabolic interpolation, 55-1000 Hz, ~43 ms window at 48 kHz, preallocated buffers, early stop after the first dip). Unvoiced below -50 dBFS or confidence 0.5. Sample rate always from the AudioContext.
+- `src/dsp/smooth.ts`: note name + cents (A4 = 440; the tuning offset comes in M5) and a 5-frame median so single stray frames don't show.
+- `src/audio/capture.worklet.js` + `src/audio/mic.ts`: getUserMedia with echo cancellation, noise suppression and auto gain all off, mono; the worklet copies samples into one preallocated 1024-sample chunk and posts it (no allocation or logging in `process()`); the main thread keeps a sliding analysis window (~47 analyses/s). The mic is not connected to the speakers. The worklet is emitted as its own file and loaded via `new URL(..., import.meta.url)`.
+- `src/ui/micPanel.ts`: Start/Stop mic, Microphone dropdown, level meter with "very quiet"/"clipping" hints, big note readout (e.g. "A3 +4¢"), frequency and confidence, latency line (output, base, analysis window, sample rate).
+- `window.__debug.pitch`, `__debug.pitchLog` (last 200 readings), `__debug.workletUrl`.
+
+**Dependencies:** none.
+
+**Verified** (cloud sandbox, Chromium 141, no mic; synthetic audio only)
+- Unit, at 44.1 and 48 kHz: sines 130-600 Hz in quarter-tone steps and the open strings C2/G2/D3/A3 (cello-like tone with a weak fundamental) all within 10 cents; 5.5 Hz vibrato of ±30 cents tracked within ±40 cents of the instantaneous pitch with the smoothed note name never changing; octave errors under 2% of frames on sawtooth and cello-like tones from 65 to 600 Hz; silence and -60 dBFS noise unvoiced.
+- Speed (Node, 48 kHz, 60 s of audio): 14x real time on the open C (worst case), 41x at G3, 83x at A4. Live, that is roughly 2-7% of one CPU core.
+- Fake-mic e2e (Chromium playing a generated WAV as the microphone): A3 and D4 recognized with steady readings within 15 cents (in practice 0-2 cents), silence reported as no pitch, level meter moving, worklet loaded from `/Swan-accompaniment/assets/capture.worklet-*.js` in the production build. Stable over repeated runs.
+- All local commands green; without `local/swan.mid` the real-score tests skip.
+
+**Unverified:** a real microphone and a real cello (bow noise, room, slides, how the browser and your mic handle the "processing off" settings). The first frame or two of a note can read slightly off while the window still contains the silence before it.
+
+**Dylan test** (wired headphones, Chrome on a computer, cello ready)
+- [ ] Open https://dylcai85.github.io/Swan-accompaniment/ and press Ctrl+Shift+R (Mac: Cmd+Shift+R).
+- [ ] Click **Start mic**. When Chrome asks to use your microphone, click **Allow**.
+- [ ] If you have more than one microphone, pick the right one in the **Microphone** dropdown.
+- [ ] Play each open string (C, G, D, A) for a few seconds. Does the big note match, with no octave jumps?
+- [ ] Play a slow scale with vibrato. Does it follow smoothly?
+- [ ] Play a slow slide. Does it track without jumping around?
+- [ ] Tell Claude the **Latency** line, and whether the green level bar sits in the middle without "Clipping".
+
 ## M2: Piano playback engine (2026-10-19)
 
 **Needs Dylan:** the listening test below, with wired headphones.
@@ -20,6 +50,8 @@ One entry per milestone, newest first. Each entry: what changed, how it was veri
 - Offline render in Chromium (`OfflineAudioContext`, mini score, piano 1, 10 s, rate 1.0 → 0.75 at 5 s): 47 onsets detected in the audio, all within 5 ms of the scheduled times (mean 2 ms); note spacing grows by 1/0.75 after the change.
 - e2e UI flow: Play advances the position, the speed slider changes the rate live, Pause freezes the position, Go to bar 4 lands on bar 4 beat 1. The sample CDN is blocked in the sandbox, so the test also confirmed the synth fallback kicks in and the status says so.
 - All local commands green; without `local/swan.mid` the 7 real-score unit tests skip.
+
+**Follow-up fixes after Dylan's test:** (1) Pause sometimes needed several clicks on his machine. Not reproducible in headless Chromium (state and audio stop on the first click), so the two plausible causes were removed: concurrent clicks could create a second, unreachable player, and the button/status text was rewritten ~40x/s. (2) The first ~2 s played on the simple synth before the piano samples loaded; the first Play now waits for the samples ("Loading piano sound…").
 
 **Unverified (no speakers here):** how the piano sounds, whether the Salamander samples load in your browser, and real-device timing or glitches while dragging the slider.
 
